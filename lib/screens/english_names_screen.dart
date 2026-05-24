@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../services/data_service.dart';
 
-class AncientNamesScreen extends StatefulWidget {
-  const AncientNamesScreen({super.key});
+class EnglishNamesScreen extends StatefulWidget {
+  const EnglishNamesScreen({super.key});
 
   @override
-  State<AncientNamesScreen> createState() => _AncientNamesScreenState();
+  State<EnglishNamesScreen> createState() => _EnglishNamesScreenState();
 }
 
-class _AncientNamesScreenState extends State<AncientNamesScreen> {
+class _EnglishNamesScreenState extends State<EnglishNamesScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _names = [];
   bool _isLoading = true;
@@ -46,8 +46,8 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
     });
 
     try {
-      final count = await DataService().getTotalCount('ancient');
-      final data = await DataService().loadAncientNames(
+      final count = await DataService().getTotalCount('english');
+      final data = await DataService().loadEnglishNames(
         offset: 0,
         limit: _pageSize,
       );
@@ -80,7 +80,7 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
     });
 
     try {
-      final data = await DataService().loadAncientNames(
+      final data = await DataService().loadEnglishNames(
         offset: _offset,
         limit: _pageSize,
       );
@@ -103,46 +103,112 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
     }
   }
 
+  Color _getGenderColor(String? gender) {
+    if (gender == 'M' || gender == '男') return Colors.blue;
+    if (gender == 'F' || gender == '女') return Colors.pink;
+    return Colors.grey;
+  }
+
+  String _getGenderLabel(String? gender) {
+    if (gender == 'M' || gender == '男') return '男';
+    if (gender == 'F' || gender == '女') return '女';
+    return '未知';
+  }
+
   void _showNameDetail(Map<String, dynamic> nameData) {
     showDialog(
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
+        final gender = nameData['gender'] as String?;
+        final genderColor = _getGenderColor(gender);
 
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: const Text(
-            '古代人名',
+            '英文译名',
             textAlign: TextAlign.center,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // 英文名
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  nameData['name'] as String,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onPrimaryContainer,
-                    letterSpacing: 6,
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      nameData['en_name'] as String? ?? '',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onPrimaryContainer,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 1,
+                      width: 60,
+                      color: colorScheme.onPrimaryContainer.withOpacity(0.2),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      nameData['cn_name'] as String? ?? '',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onPrimaryContainer,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                '来源：古代历史文献',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
+              const SizedBox(height: 16),
+
+              // 性别标签
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: genderColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: genderColor.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      gender == 'M' || gender == '男'
+                          ? Icons.male
+                          : Icons.female,
+                      size: 16,
+                      color: genderColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getGenderLabel(gender),
+                      style: TextStyle(
+                        color: genderColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -165,7 +231,7 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('古代人名'),
+        title: const Text('英文译名'),
         centerTitle: true,
       ),
       body: Column(
@@ -178,7 +244,7 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
               child: Row(
                 children: [
                   Icon(
-                    Icons.account_balance,
+                    Icons.translate,
                     size: 18,
                     color: colorScheme.primary,
                   ),
@@ -213,13 +279,13 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.history_edu,
+                              Icons.language,
                               size: 64,
                               color: colorScheme.onSurfaceVariant.withOpacity(0.4),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '暂无古代人名数据',
+                              '暂无英文译名数据',
                               style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
                                 fontSize: 16,
@@ -245,7 +311,12 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
                           }
 
                           final nameData = _names[index];
-                          final name = nameData['name'] as String;
+                          final cnName =
+                              nameData['cn_name'] as String? ?? '';
+                          final enName =
+                              nameData['en_name'] as String? ?? '';
+                          final gender = nameData['gender'] as String?;
+                          final genderColor = _getGenderColor(gender);
 
                           return InkWell(
                             onTap: () => _showNameDetail(nameData),
@@ -265,42 +336,70 @@ class _AncientNamesScreenState extends State<AncientNamesScreen> {
                               ),
                               child: Row(
                                 children: [
+                                  // 性别图标
                                   Container(
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: colorScheme.tertiaryContainer,
+                                      color: genderColor.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Center(
-                                      child: Text(
-                                        name.characters.first,
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorScheme.onTertiaryContainer,
-                                        ),
+                                      child: Icon(
+                                        gender == 'M' || gender == '男'
+                                            ? Icons.male
+                                            : Icons.female,
+                                        color: genderColor,
+                                        size: 20,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 14),
+
+                                  // 中文名
                                   Expanded(
-                                    child: Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w500,
-                                        color: colorScheme.onSurface,
-                                        letterSpacing: 2,
-                                      ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          cnName,
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                            letterSpacing: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          enName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onSurfaceVariant
-                                          .withOpacity(0.5),
+
+                                  // 性别标签
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: genderColor.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _getGenderLabel(gender),
+                                      style: TextStyle(
+                                        color: genderColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),

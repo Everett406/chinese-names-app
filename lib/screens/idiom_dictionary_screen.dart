@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/data_service.dart';
 
-/// 成语词典页面
 class IdiomDictionaryScreen extends StatefulWidget {
   const IdiomDictionaryScreen({super.key});
 
@@ -13,81 +12,145 @@ class IdiomDictionaryScreen extends StatefulWidget {
 class _IdiomDictionaryScreenState extends State<IdiomDictionaryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  Timer? _debounceTimer;
-
   List<Map<String, dynamic>> _idioms = [];
-  List<Map<String, dynamic>> _filteredIdioms = [];
   bool _isLoading = true;
-  String? _errorMessage;
+  bool _isSearching = false;
   String _searchQuery = '';
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _loadIdioms();
-    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _loadIdioms() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final idioms = await DataService.loadIdioms();
-      setState(() { _idioms = idioms; _filteredIdioms = idioms; _isLoading = false; });
+      final data = await DataService().loadIdioms();
+      setState(() {
+        _idioms = data;
+        _isLoading = false;
+      });
     } catch (e) {
-      setState(() { _isLoading = false; _errorMessage = '加载失败：$e'; });
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败: $e')),
+        );
+      }
     }
   }
 
-  void _onSearchChanged() {
+  Future<void> _searchIdioms(String query) async {
+    if (query.trim().isEmpty) {
+      _loadIdioms();
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final data = await DataService().searchIdioms(query.trim());
+      setState(() {
+        _idioms = data;
+        _isSearching = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('搜索失败: $e')),
+        );
+      }
+    }
+  }
+
+  void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _filterIdioms(_searchController.text.trim());
+      _searchQuery = query;
+      _searchIdioms(query);
     });
   }
 
-  Future<void> _filterIdioms(String query) async {
-    if (query.isEmpty) {
-      setState(() { _filteredIdioms = _idioms; _searchQuery = ''; });
-      return;
-    }
-    setState(() => _searchQuery = query);
-    try {
-      final results = await DataService.searchIdioms(query);
-      setState(() => _filteredIdioms = results);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('搜索失败：$e')));
-    }
-  }
-
   void _showIdiomDetail(Map<String, dynamic> idiom) {
-    final theme = Theme.of(context);
-    final word = idiom['word'] as String? ?? '';
-    final explanation = idiom['explanation'] as String? ?? '';
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(word),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (explanation.isNotEmpty) ...[
-              Text('释义', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(explanation, style: theme.textTheme.bodyMedium),
+      builder: (context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            idiom['word'] as String,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.primary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                idiom['word'] as String,
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w900,
+                  color: colorScheme.onSurface,
+                  letterSpacing: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: 60,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
           ],
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭'))],
-      ),
+        );
+      },
     );
   }
 
@@ -95,72 +158,173 @@ class _IdiomDictionaryScreenState extends State<IdiomDictionaryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('成语词典'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('成语词典'),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
+          // 搜索框
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: '搜索成语...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 filled: true,
                 fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
               ),
+              onChanged: (value) {
+                setState(() {});
+                _onSearchChanged(value);
+              },
             ),
           ),
-          if (_searchQuery.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('找到 ${_filteredIdioms.length} 个成语',
-                    style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-              ),
-            ),
+
+          // 列表
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _errorMessage != null
-                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.error_outline, size: 48, color: colorScheme.error),
-                        const SizedBox(height: 16),
-                        Text(_errorMessage!, style: TextStyle(color: colorScheme.error)),
-                        const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _loadIdioms, child: const Text('重试')),
-                      ]))
-                    : _filteredIdioms.isEmpty
-                        ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.menu_book, size: 64, color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
-                            const SizedBox(height: 16),
-                            Text(_searchQuery.isNotEmpty ? '未找到匹配的成语' : '暂无成语数据',
-                                style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
-                          ]))
-                        : ListView.builder(
-                            controller: _scrollController,
-                            itemCount: _filteredIdioms.length,
-                            itemBuilder: (context, index) {
-                              final idiom = _filteredIdioms[index];
-                              final word = idiom['word'] as String? ?? '';
-                              final explanation = idiom['explanation'] as String? ?? '';
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: colorScheme.tertiaryContainer,
-                                  child: Text(word.isNotEmpty ? word[0] : '?',
-                                      style: TextStyle(color: colorScheme.onTertiaryContainer, fontWeight: FontWeight.bold)),
+                : _isSearching
+                    ? const Center(child: CircularProgressIndicator())
+                    : _idioms.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: colorScheme.onSurfaceVariant.withOpacity(0.4),
                                 ),
-                                title: Text(word, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                                subtitle: Text(explanation, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () => _showIdiomDetail(idiom),
-                              );
-                            },
+                                const SizedBox(height: 16),
+                                Text(
+                                  _searchQuery.isNotEmpty
+                                      ? '未找到相关成语'
+                                      : '暂无成语数据',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadIdioms,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              itemCount: _idioms.length,
+                              itemBuilder: (context, index) {
+                                final idiom = _idioms[index];
+                                return _IdiomListItem(
+                                  idiom: idiom,
+                                  onTap: () => _showIdiomDetail(idiom),
+                                );
+                              },
+                            ),
                           ),
           ),
+
+          // 底部统计
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            color: colorScheme.surfaceContainerLow,
+            child: Text(
+              '共 ${_idioms.length} 条成语',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _IdiomListItem extends StatelessWidget {
+  final Map<String, dynamic> idiom;
+  final VoidCallback onTap;
+
+  const _IdiomListItem({
+    required this.idiom,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: colorScheme.outlineVariant.withOpacity(0.5),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  (idiom['word'] as String).characters.first,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                idiom['word'] as String,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
+                  letterSpacing: 4,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }

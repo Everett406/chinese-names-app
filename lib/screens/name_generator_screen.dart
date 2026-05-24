@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/data_service.dart';
 
-/// 人名生成器页面
 class NameGeneratorScreen extends StatefulWidget {
   const NameGeneratorScreen({super.key});
 
@@ -12,9 +12,9 @@ class NameGeneratorScreen extends StatefulWidget {
 class _NameGeneratorScreenState extends State<NameGeneratorScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _surnameController = TextEditingController();
-  String _genderPreference = '不限';
-  String? _currentName;
-  bool _isLoading = false;
+  String _selectedGender = '不限';
+  bool _isGenerating = false;
+  String? _generatedName;
   final List<String> _history = [];
 
   late AnimationController _animationController;
@@ -24,8 +24,8 @@ class _NameGeneratorScreenState extends State<NameGeneratorScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
       vsync: this,
+      duration: const Duration(milliseconds: 400),
     );
     _scaleAnimation = CurvedAnimation(
       parent: _animationController,
@@ -41,29 +41,58 @@ class _NameGeneratorScreenState extends State<NameGeneratorScreen>
   }
 
   Future<void> _generateName() async {
-    setState(() => _isLoading = true);
-    try {
-      final surname = _surnameController.text.trim();
-      final name = await DataService.generateRandomName(
-        surname: surname.isEmpty ? null : surname,
-        gender: _genderPreference == '不限' ? null : _genderPreference,
-      );
-      setState(() {
-        _currentName = name;
-        _isLoading = false;
-        _history.insert(0, name);
-        if (_history.length > 10) _history.removeLast();
-      });
+    setState(() {
+      _isGenerating = true;
+      _generatedName = null;
       _animationController.reset();
-      _animationController.forward();
+    });
+
+    try {
+      final surname = _surnameController.text.trim().isEmpty
+          ? null
+          : _surnameController.text.trim();
+      final gender =
+          _selectedGender == '不限' ? null : _selectedGender;
+
+      final name = await DataService().generateRandomName(
+        surname: surname,
+        gender: gender,
+      );
+
+      setState(() {
+        _generatedName = name;
+        _isGenerating = false;
+        _animationController.forward();
+
+        // 添加到历史记录（去重，最多20条）
+        if (!_history.contains(name)) {
+          _history.insert(0, name);
+          if (_history.length > 20) {
+            _history.removeLast();
+          }
+        }
+      });
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isGenerating = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('生成失败：$e')),
+          SnackBar(content: Text('生成失败: $e')),
         );
       }
     }
+  }
+
+  void _copyName(String name) {
+    Clipboard.setData(ClipboardData(text: name));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已复制到剪贴板'),
+        duration: Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -72,109 +101,237 @@ class _NameGeneratorScreenState extends State<NameGeneratorScreen>
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('人名生成器'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('随机取名'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 姓氏输入框
             TextField(
               controller: _surnameController,
               decoration: InputDecoration(
-                labelText: '输入姓氏（可选）',
-                hintText: '留空则随机生成',
+                labelText: '姓氏（可选）',
+                hintText: '输入姓氏，留空则随机',
                 prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: _surnameController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _surnameController.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 filled: true,
                 fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.3),
               ),
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 20),
-            Text('性别偏好', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+
+            // 性别选择
+            Text(
+              '性别选择',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 8),
-            Row(
+            Wrap(
+              spacing: 10,
               children: ['男', '女', '不限'].map((gender) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: ChoiceChip(
-                      label: Text(gender),
-                      selected: _genderPreference == gender,
-                      onSelected: (selected) {
-                        setState(() => _genderPreference = gender);
-                      },
-                    ),
+                return ChoiceChip(
+                  label: Text(gender),
+                  selected: _selectedGender == gender,
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedGender = gender;
+                    });
+                  },
+                  avatar: _getGenderIcon(gender),
+                  selectedColor: colorScheme.primaryContainer,
+                  labelStyle: TextStyle(
+                    color: _selectedGender == gender
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: _selectedGender == gender
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _generateName,
-              icon: _isLoading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.auto_awesome),
-              label: Text(_isLoading ? '生成中...' : '生成姓名', style: const TextStyle(fontSize: 16)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 32),
+
+            // 生成按钮
+            SizedBox(
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: _isGenerating ? null : _generateName,
+                icon: _isGenerating
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.onPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.casino, size: 24),
+                label: Text(
+                  _isGenerating ? '生成中...' : '生成名字',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                ),
               ),
             ),
-            if (_currentName != null) ...[
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [colorScheme.primaryContainer, colorScheme.secondaryContainer],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            const SizedBox(height: 32),
+
+            // 生成结果
+            if (_generatedName != null)
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 28,
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withOpacity(0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        colorScheme.primaryContainer,
+                        colorScheme.secondaryContainer,
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Text(
-                        _currentName!,
-                        style: theme.textTheme.headlineLarge?.copyWith(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '为您生成',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _generatedName!,
+                        style: TextStyle(
+                          fontSize: 42,
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onPrimaryContainer,
                           letterSpacing: 8,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: _isLoading ? null : _generateName,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('换一个'),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () => _copyName(_generatedName!),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.copy,
+                                size: 14,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '点击复制',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+
+            // 历史记录
             if (_history.isNotEmpty) ...[
               const SizedBox(height: 32),
-              Text('生成历史', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              Row(
+                children: [
+                  Text(
+                    '历史记录',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_history.length}/20',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_history.isNotEmpty)
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _history.clear();
+                        });
+                      },
+                      child: const Text('清空'),
+                    ),
+                ],
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: _history.map((name) {
-                  return Chip(
+                  return ActionChip(
                     label: Text(name),
-                    onDeleted: () {
-                      setState(() => _history.remove(name));
-                    },
+                    avatar: const Icon(Icons.history, size: 16),
+                    onPressed: () => _copyName(name),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   );
                 }).toList(),
               ),
@@ -183,5 +340,16 @@ class _NameGeneratorScreenState extends State<NameGeneratorScreen>
         ),
       ),
     );
+  }
+
+  Widget? _getGenderIcon(String gender) {
+    switch (gender) {
+      case '男':
+        return const Icon(Icons.male, color: Colors.blue, size: 18);
+      case '女':
+        return const Icon(Icons.female, color: Colors.pink, size: 18);
+      default:
+        return const Icon(Icons.shuffle, size: 18);
+    }
   }
 }
