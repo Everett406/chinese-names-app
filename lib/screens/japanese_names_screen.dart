@@ -213,7 +213,7 @@ class _JapaneseNamesScreenState extends State<JapaneseNamesScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.transliterate,
+                              Icons.translate,
                               size: 64,
                               color: colorScheme.onSurfaceVariant.withOpacity(0.4),
                             ),

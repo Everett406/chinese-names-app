@@ -158,7 +158,7 @@ class _NameCard extends StatelessWidget {
               // 名字首字头像
               CircleAvatar(
                 radius: 24,
-                backgroundColor: _genderColor(gender).withValues(alpha: 0.12),
+                backgroundColor: _genderColor(gender).withOpacity(0.12),
                 child: Text(
                   name.isNotEmpty ? name[0] : '?',
                   style: TextStyle(
@@ -211,17 +211,17 @@ class _GenderChip extends StatelessWidget {
 
     switch (gender) {
       case '男':
-        bgColor = Colors.blue.withValues(alpha: 0.1);
+        bgColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue;
         label = '男';
         break;
       case '女':
-        bgColor = Colors.pink.withValues(alpha: 0.1);
+        bgColor = Colors.pink.withOpacity(0.1);
         textColor = Colors.pink;
         label = '女';
         break;
       default:
-        bgColor = Colors.grey.withValues(alpha: 0.1);
+        bgColor = Colors.grey.withOpacity(0.1);
         textColor = Colors.grey;
         label = '未知';
     }
@@ -314,7 +314,7 @@ class _NameSearchDelegate extends SearchDelegate<String> {
         return ListTile(
           leading: CircleAvatar(
             radius: 18,
-            backgroundColor: _genderColor(item['gender'] as String? ?? '').withValues(alpha: 0.12),
+            backgroundColor: _genderColor(item['gender'] as String? ?? '').withOpacity(0.12),
             child: Text(
               name.isNotEmpty ? name[0] : '?',
               style: TextStyle(

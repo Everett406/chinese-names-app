@@ -46,7 +46,7 @@ class _SurnameListScreenState extends State<SurnameListScreen> {
     '符', '刘', '景', '詹', '束', '龙', '叶', '幸', '司', '韶',
     '郜', '黎', '蓟', '溥', '印', '宿', '白', '怀', '蒲', '邰',
     '从', '鄂', '索', '咸', '籍', '赖', '卓', '蔺', '屠', '蒙',
-    '池', '乔', '阴', '郁', '胥', '能', '苍', '双', '闻', '莘',
+    '池', '乔', '阴', '胥', '能', '苍', '双', '闻', '莘',
     '党', '翟', '谭', '贡', '劳', '逄', '姬', '申', '扶', '堵',
     '冉', '宰', '郦', '雍', '却', '璩', '桑', '桂', '濮', '牛',
     '寿', '通', '边', '扈', '燕', '冀', '浦', '尚', '农', '温',
@@ -197,7 +197,7 @@ class _SurnameListScreenState extends State<SurnameListScreen> {
                           : null,
                       filled: true,
                       fillColor: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
+                          .withOpacity(0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: BorderSide.none,
@@ -209,7 +209,7 @@ class _SurnameListScreenState extends State<SurnameListScreen> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: BorderSide(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                          color: theme.colorScheme.primary.withOpacity(0.5),
                           width: 1.5,
                         ),
                       ),
@@ -413,7 +413,7 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
         color: theme.colorScheme.surfaceContainerLow,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
             width: 0.5,
           ),
         ),
@@ -477,7 +477,7 @@ class _SurnameItem extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.5),
+                    .withOpacity(0.5),
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
@@ -538,13 +538,13 @@ class _RankBadge extends StatelessWidget {
       Color textColor;
 
       if (rank <= 10) {
-        bgColor = Colors.orange.withValues(alpha: 0.12);
+        bgColor = Colors.orange.withOpacity(0.12);
         textColor = Colors.orange;
       } else if (rank <= 50) {
-        bgColor = Colors.blue.withValues(alpha: 0.1);
+        bgColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue;
       } else {
-        bgColor = Colors.teal.withValues(alpha: 0.1);
+        bgColor = Colors.teal.withOpacity(0.1);
         textColor = Colors.teal;
       }
 
@@ -567,7 +567,7 @@ class _RankBadge extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.1),
+          color: Colors.grey.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
