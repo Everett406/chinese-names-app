@@ -1,25 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
 
-import 'services/data_service.dart';
 import 'screens/home_screen.dart';
-import 'screens/name_generator_screen.dart';
 import 'screens/name_search_screen.dart';
+import 'screens/name_generator_screen.dart';
 import 'screens/surname_list_screen.dart';
 import 'screens/idiom_dictionary_screen.dart';
 import 'screens/ancient_names_screen.dart';
 import 'screens/japanese_names_screen.dart';
+import 'screens/english_names_screen.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        Provider<DataService>(create: (_) => DataService()..init()),
-      ],
-      child: const ChineseNamesApp(),
-    ),
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ChineseNamesApp());
 }
 
 class ChineseNamesApp extends StatelessWidget {
@@ -28,71 +21,35 @@ class ChineseNamesApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '萌名工具箱',
+      title: '中文名字语料库',
       debugShowCheckedModeBanner: false,
-      locale: const Locale('zh', 'CN'),
-      supportedLocales: const [
-        Locale('zh', 'CN'),
-        Locale('en', 'US'),
-      ],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+
+      // 主题配置
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF1976D2),
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-        ),
-        cardTheme: CardTheme(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF1976D2),
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-          backgroundColor: const Color(0xFF1E1E1E),
-        ),
-        cardTheme: CardTheme(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
       ),
       themeMode: ThemeMode.system,
+
+      // 国际化
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('zh', 'CN'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('zh', 'CN'),
+
+      // 路由表
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
@@ -102,6 +59,7 @@ class ChineseNamesApp extends StatelessWidget {
         '/idioms': (context) => const IdiomDictionaryScreen(),
         '/ancient': (context) => const AncientNamesScreen(),
         '/japanese': (context) => const JapaneseNamesScreen(),
+        '/english': (context) => const EnglishNamesScreen(),
       },
     );
   }

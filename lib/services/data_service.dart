@@ -3,215 +3,504 @@ import 'dart:math';
 
 import 'package:flutter/services.dart';
 
-/// 核心数据服务 - 单例模式，提供静态方法供各页面调用
+/// 数据服务 - 单例模式
+/// 负责从 assets/data/ 加载和管理所有语料库数据
 class DataService {
+  // ==================== 单例 ====================
   static final DataService _instance = DataService._internal();
   factory DataService() => _instance;
   DataService._internal();
 
-  // 缓存数据
-  static List<Map<String, dynamic>>? _namesCache;
-  static List<String>? _surnamesCache;
-  static List<Map<String, dynamic>>? _idiomsCache;
-  static List<Map<String, dynamic>>? _ancientNamesCache;
-  static List<Map<String, dynamic>>? _japaneseNamesCache;
+  // ==================== 缓存 ====================
+  List<Map<String, dynamic>>? _namesCache;
+  List<Map<String, dynamic>>? _surnamesCache;
+  List<String>? _surnamesForGenCache;
+  List<Map<String, dynamic>>? _idiomsCache;
+  List<String>? _ancientNamesCache;
+  List<String>? _japaneseNamesCache;
+  List<Map<String, dynamic>>? _englishNamesCache;
 
-  static const List<String> _fallbackSurnames = [
-    '赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈',
-    '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
-    '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏',
-    '陶', '姜', '戚', '谢', '邹', '喻', '柏', '水', '窦', '章',
-    '云', '苏', '潘', '葛', '奚', '范', '彭', '郎', '鲁', '韦',
-    '昌', '马', '苗', '凤', '花', '方', '俞', '任', '袁', '柳',
-    '酆', '鲍', '史', '唐', '费', '廉', '岑', '薛', '雷', '贺',
-    '倪', '汤', '滕', '殷', '罗', '毕', '郝', '邬', '安', '常',
-    '乐', '于', '时', '傅', '皮', '卞', '齐', '康', '伍', '余',
-    '元', '卜', '顾', '孟', '平', '黄', '和', '穆', '萧', '尹',
+  // ==================== 内置 Fallback 数据 ====================
+  static const List<Map<String, dynamic>> _fallbackNames = [
+    {'name': '张伟', 'gender': '男'},
+    {'name': '王芳', 'gender': '女'},
+    {'name': '李娜', 'gender': '女'},
+    {'name': '刘洋', 'gender': '男'},
+    {'name': '陈静', 'gender': '女'},
+    {'name': '杨磊', 'gender': '男'},
+    {'name': '赵敏', 'gender': '女'},
+    {'name': '黄强', 'gender': '男'},
+    {'name': '周杰', 'gender': '男'},
+    {'name': '吴秀英', 'gender': '女'},
   ];
 
-  static const List<String> _fallbackGivenNameChars = [
-    '瑞', '祥', '福', '禄', '寿', '喜', '吉', '庆', '安', '康',
-    '宁', '和', '平', '顺', '兴', '旺', '盛', '昌', '隆', '茂',
-    '德', '仁', '义', '礼', '智', '信', '忠', '孝', '廉', '正',
-    '诚', '善', '贤', '良', '温', '恭', '俭', '让', '敬', '慈',
-    '文', '武', '才', '学', '博', '明', '慧', '聪', '睿', '哲',
-    '思', '志', '远', '达', '通', '晓', '知', '理', '书', '翰',
-    '山', '川', '海', '江', '河', '湖', '林', '森', '松', '柏',
-    '竹', '梅', '兰', '菊', '莲', '荷', '桂', '桐', '柳', '枫',
-    '云', '雨', '雪', '风', '霞', '露', '霜', '星', '月', '日',
-    '天', '地', '泉', '溪', '石', '峰', '岩', '谷', '原', '野',
-    '美', '丽', '娟', '婷', '雅', '静', '淑', '惠', '秀', '英',
-    '华', '荣', '富', '贵', '金', '玉', '珍', '珠', '宝', '琳',
-    '瑶', '琼', '瑛', '珊', '璐', '瑾', '瑜', '璇', '珺', '琪',
-    '伟', '强', '刚', '毅', '勇', '杰', '豪', '雄', '俊', '帅',
-    '威', '壮', '猛', '力', '健', '翔', '飞', '鹏', '程', '浩',
-    '春', '夏', '秋', '冬', '晨', '曦', '旭', '阳', '辉', '光',
-    '影', '虹', '霄', '汉', '宇', '宙', '乾', '坤', '元', '亨',
-    '怡', '悦', '欣', '欢', '乐', '畅', '恬', '清', '淡', '素',
-    '朴', '真', '纯', '洁', '白', '韵', '诗', '画', '琴', '棋',
+  static const List<Map<String, dynamic>> _fallbackSurnames = [
+    {'surname': '王', 'pinyin': 'W', 'rank': '1'},
+    {'surname': '李', 'pinyin': 'L', 'rank': '2'},
+    {'surname': '张', 'pinyin': 'Z', 'rank': '3'},
+    {'surname': '刘', 'pinyin': 'L', 'rank': '4'},
+    {'surname': '陈', 'pinyin': 'C', 'rank': '5'},
+    {'surname': '杨', 'pinyin': 'Y', 'rank': '6'},
+    {'surname': '赵', 'pinyin': 'Z', 'rank': '7'},
+    {'surname': '黄', 'pinyin': 'H', 'rank': '8'},
+    {'surname': '周', 'pinyin': 'Z', 'rank': '9'},
+    {'surname': '吴', 'pinyin': 'W', 'rank': '10'},
   ];
 
-  Future<void> init() async {
-    await loadNames();
+  static const List<String> _fallbackSurnamesForGen = [
+    '王', '李', '张', '刘', '陈', '杨', '赵', '黄', '周', '吴',
+    '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗',
+  ];
+
+  static const List<Map<String, dynamic>> _fallbackIdioms = [
+    {'word': '一心一意'},
+    {'word': '三心二意'},
+    {'word': '四面楚歌'},
+    {'word': '五湖四海'},
+    {'word': '六神无主'},
+    {'word': '七上八下'},
+    {'word': '八面玲珑'},
+    {'word': '九牛一毛'},
+    {'word': '十全十美'},
+    {'word': '百发百中'},
+  ];
+
+  static const List<String> _fallbackAncientNames = [
+    '李白', '杜甫', '白居易', '苏轼', '辛弃疾',
+    '李清照', '王维', '孟浩然', '柳永', '欧阳修',
+  ];
+
+  static const List<String> _fallbackJapaneseNames = [
+    '田中', '铃木', '佐藤', '高桥', '渡边',
+    '伊藤', '山本', '中村', '小林', '加藤',
+  ];
+
+  static const List<Map<String, dynamic>> _fallbackEnglishNames = [
+    {'cn_name': '约翰', 'en_name': 'John', 'gender': 'M'},
+    {'cn_name': '玛丽', 'en_name': 'Mary', 'gender': 'F'},
+    {'cn_name': '詹姆斯', 'en_name': 'James', 'gender': 'M'},
+    {'cn_name': '艾米丽', 'en_name': 'Emily', 'gender': 'F'},
+    {'cn_name': '大卫', 'en_name': 'David', 'gender': 'M'},
+  ];
+
+  // ==================== 随机数生成器 ====================
+  final Random _random = Random();
+
+  // ==================== 通用加载方法 ====================
+
+  /// 从 asset 加载文本文件，失败时返回 null
+  Future<String?> _loadAssetText(String path) async {
+    try {
+      return await rootBundle.loadString(path);
+    } catch (e) {
+      return null;
+    }
   }
 
-  static Future<List<Map<String, dynamic>>> loadNames() async {
+  // ==================== 人名相关 ====================
+
+  /// 加载全部人名数据
+  /// 返回 [{name: '张伟', gender: '男'}, ...]
+  Future<List<Map<String, dynamic>>> loadNames() async {
     if (_namesCache != null) return _namesCache!;
-    try {
-      final text = await rootBundle.loadString('assets/data/names.txt');
-      _namesCache = text
-          .split('\n')
-          .where((line) => line.trim().isNotEmpty)
-          .map((line) {
-        final parts = line.trim().split(RegExp(r'\s+'));
-        return {
-          'name': parts[0],
-          'gender': parts.length > 1 ? parts[1] : null,
-        };
-      }).toList();
-    } catch (_) {
-      _namesCache = _generateFallbackNames();
+
+    final text = await _loadAssetText('assets/data/names.txt');
+    if (text == null || text.isEmpty) {
+      _namesCache = List.from(_fallbackNames);
+      return _namesCache!;
     }
+
+    final lines = const LineSplitter().convert(text);
+    _namesCache = <Map<String, dynamic>>[];
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      final parts = trimmed.split(',');
+      if (parts.length >= 2) {
+        _namesCache!.add({
+          'name': parts[0].trim(),
+          'gender': parts[1].trim(),
+        });
+      } else if (parts.length == 1 && parts[0].trim().isNotEmpty) {
+        _namesCache!.add({
+          'name': parts[0].trim(),
+          'gender': '未知',
+        });
+      }
+    }
+
     return _namesCache!;
   }
 
-  static Future<List<Map<String, dynamic>>> searchNames(String query) async {
+  /// 搜索人名（按名字 contains 匹配）
+  Future<List<Map<String, dynamic>>> searchNames(String query) async {
+    if (query.trim().isEmpty) return [];
+
     final names = await loadNames();
-    if (query.isEmpty) return names;
-    return names.where((entry) {
-      final name = entry['name'] as String? ?? '';
-      return name.contains(query);
-    }).toList();
+    final lowerQuery = query.trim().toLowerCase();
+
+    return names
+        .where((item) =>
+            (item['name'] as String).toLowerCase().contains(lowerQuery))
+        .toList();
   }
 
-  static Future<String> generateRandomName({String? surname, String? gender}) async {
-    final surnames = await loadSurnames();
-    final random = Random();
-    final finalSurname = surname ?? surnames[random.nextInt(surnames.length)];
-    final givenNameLength = random.nextBool() ? 1 : 2;
-    final givenNameChars = <String>[];
-    for (int i = 0; i < givenNameLength; i++) {
-      givenNameChars.add(_fallbackGivenNameChars[random.nextInt(_fallbackGivenNameChars.length)]);
+  /// 随机生成名字
+  /// [surname] 指定姓氏，为空则从 surnames_for_gen.txt 随机选取
+  /// [gender] 指定性别筛选，为空则不筛选
+  Future<String> generateRandomName({
+    String? surname,
+    String? gender,
+  }) async {
+    // 确定姓氏
+    String finalSurname;
+    if (surname != null && surname.trim().isNotEmpty) {
+      finalSurname = surname.trim();
+    } else {
+      final surnames = await _loadSurnamesForGen();
+      finalSurname = surnames[_random.nextInt(surnames.length)];
     }
-    return finalSurname + givenNameChars.join();
-  }
 
-  static Future<List<String>> loadSurnames() async {
-    if (_surnamesCache != null) return _surnamesCache!;
-    try {
-      final text = await rootBundle.loadString('assets/data/surnames.txt');
-      _surnamesCache = text
-          .split('\n')
-          .where((line) => line.trim().isNotEmpty)
-          .map((line) => line.trim())
+    // 加载人名数据，提取名字部分（去掉姓氏）
+    final names = await loadNames();
+    List<String> namePool;
+
+    if (gender != null && gender.trim().isNotEmpty) {
+      final filtered = names
+          .where((item) => item['gender'] == gender.trim())
           .toList();
-    } catch (_) {
-      _surnamesCache = List.from(_fallbackSurnames);
+      namePool = _extractGivenNames(filtered, finalSurname);
+    } else {
+      namePool = _extractGivenNames(names, finalSurname);
     }
+
+    // 如果没有匹配的名字，从全部数据中提取
+    if (namePool.isEmpty) {
+      namePool = _extractGivenNames(names, '');
+    }
+
+    // 如果仍然为空，使用 fallback
+    if (namePool.isEmpty) {
+      namePool = ['伟', '芳', '娜', '洋', '静', '磊', '敏', '强', '杰', '秀英'];
+    }
+
+    final givenName = namePool[_random.nextInt(namePool.length)];
+    return finalSurname + givenName;
+  }
+
+  /// 从人名列表中提取名字部分（去掉姓氏前缀）
+  List<String> _extractGivenNames(
+    List<Map<String, dynamic>> names,
+    String surname,
+  ) {
+    final Set<String> result = {};
+    for (final item in names) {
+      final fullName = item['name'] as String;
+      String givenName = fullName;
+
+      // 尝试去掉姓氏前缀
+      if (surname.isNotEmpty && fullName.startsWith(surname)) {
+        givenName = fullName.substring(surname.length);
+      } else if (fullName.length >= 2) {
+        // 取最后1-2个字作为名字
+        givenName = fullName.length > 2 ? fullName.substring(1) : fullName.substring(1);
+      }
+
+      if (givenName.isNotEmpty) {
+        result.add(givenName);
+      }
+    }
+    return result.toList();
+  }
+
+  /// 加载用于名字生成的姓氏列表
+  Future<List<String>> _loadSurnamesForGen() async {
+    if (_surnamesForGenCache != null) return _surnamesForGenCache!;
+
+    final text = await _loadAssetText('assets/data/surnames_for_gen.txt');
+    if (text == null || text.isEmpty) {
+      _surnamesForGenCache = List.from(_fallbackSurnamesForGen);
+      return _surnamesForGenCache!;
+    }
+
+    final lines = const LineSplitter().convert(text);
+    _surnamesForGenCache = lines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    if (_surnamesForGenCache!.isEmpty) {
+      _surnamesForGenCache = List.from(_fallbackSurnamesForGen);
+    }
+
+    return _surnamesForGenCache!;
+  }
+
+  // ==================== 姓氏相关 ====================
+
+  /// 加载全部姓氏数据
+  /// 返回 [{surname: '王', pinyin: 'W', rank: '1'}, ...]
+  Future<List<Map<String, dynamic>>> loadSurnames() async {
+    if (_surnamesCache != null) return _surnamesCache!;
+
+    final text = await _loadAssetText('assets/data/surnames.txt');
+    if (text == null || text.isEmpty) {
+      _surnamesCache = List.from(_fallbackSurnames);
+      return _surnamesCache!;
+    }
+
+    final lines = const LineSplitter().convert(text);
+    _surnamesCache = <Map<String, dynamic>>[];
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      final parts = trimmed.split(',');
+      if (parts.length >= 3) {
+        _surnamesCache!.add({
+          'surname': parts[0].trim(),
+          'pinyin': parts[1].trim(),
+          'rank': parts[2].trim(),
+        });
+      } else if (parts.length == 2) {
+        _surnamesCache!.add({
+          'surname': parts[0].trim(),
+          'pinyin': parts[1].trim(),
+          'rank': '-1',
+        });
+      } else if (parts.length == 1 && parts[0].trim().isNotEmpty) {
+        _surnamesCache!.add({
+          'surname': parts[0].trim(),
+          'pinyin': '',
+          'rank': '-1',
+        });
+      }
+    }
+
     return _surnamesCache!;
   }
 
-  static Future<List<Map<String, dynamic>>> loadIdioms() async {
+  /// 搜索姓氏（按姓氏 contains 匹配）
+  Future<List<Map<String, dynamic>>> searchSurnames(String query) async {
+    if (query.trim().isEmpty) return [];
+
+    final surnames = await loadSurnames();
+    final lowerQuery = query.trim().toLowerCase();
+
+    return surnames
+        .where((item) =>
+            (item['surname'] as String).toLowerCase().contains(lowerQuery) ||
+            (item['pinyin'] as String).toLowerCase().contains(lowerQuery))
+        .toList();
+  }
+
+  // ==================== 成语相关 ====================
+
+  /// 加载全部成语数据
+  /// 返回 [{word: '一心一意'}, ...]
+  Future<List<Map<String, dynamic>>> loadIdioms() async {
     if (_idiomsCache != null) return _idiomsCache!;
-    try {
-      final text = await rootBundle.loadString('assets/data/idioms.txt');
-      _idiomsCache = text
-          .split('\n')
-          .where((line) => line.trim().isNotEmpty)
-          .map((line) {
-        final parts = line.trim().split(RegExp(r'\s+'));
-        return {
-          'word': parts[0],
-          'explanation': parts.length > 1 ? parts.sublist(1).join(' ') : '',
-        };
-      }).toList();
-    } catch (_) {
-      _idiomsCache = [];
+
+    final text = await _loadAssetText('assets/data/idioms.txt');
+    if (text == null || text.isEmpty) {
+      _idiomsCache = List.from(_fallbackIdioms);
+      return _idiomsCache!;
     }
+
+    final lines = const LineSplitter().convert(text);
+    _idiomsCache = lines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .map((line) => {'word': line})
+        .toList();
+
+    if (_idiomsCache!.isEmpty) {
+      _idiomsCache = List.from(_fallbackIdioms);
+    }
+
     return _idiomsCache!;
   }
 
-  static Future<List<Map<String, dynamic>>> searchIdioms(String query) async {
+  /// 搜索成语（contains 匹配）
+  Future<List<Map<String, dynamic>>> searchIdioms(String query) async {
+    if (query.trim().isEmpty) return [];
+
     final idioms = await loadIdioms();
-    if (query.isEmpty) return idioms;
-    return idioms.where((entry) {
-      final word = entry['word'] as String? ?? '';
-      return word.contains(query);
-    }).toList();
+    final lowerQuery = query.trim().toLowerCase();
+
+    return idioms
+        .where((item) =>
+            (item['word'] as String).toLowerCase().contains(lowerQuery))
+        .toList();
   }
 
-  static Future<List<Map<String, dynamic>>> loadAncientNames({int offset = 0, int limit = 50}) async {
+  // ==================== 古代人名相关 ====================
+
+  /// 加载古代人名（分页）
+  /// 返回 [{name: '李白'}, ...]
+  Future<List<Map<String, dynamic>>> loadAncientNames({
+    int offset = 0,
+    int limit = 50,
+  }) async {
     if (_ancientNamesCache == null) {
-      try {
-        final text = await rootBundle.loadString('assets/data/ancient_names.txt');
-        _ancientNamesCache = text
-            .split('\n')
-            .where((line) => line.trim().isNotEmpty)
-            .map((line) {
-          final parts = line.trim().split(RegExp(r'\s+'));
-          return {
-            'name': parts[0],
-            'gender': parts.length > 1 ? parts[1] : null,
-            'dynasty': parts.length > 2 ? parts[2] : '',
-            'description': parts.length > 3 ? parts.sublist(3).join(' ') : '',
-          };
-        }).toList();
-      } catch (_) {
-        _ancientNamesCache = [];
+      final text = await _loadAssetText('assets/data/ancient_names.txt');
+      if (text == null || text.isEmpty) {
+        _ancientNamesCache = List.from(_fallbackAncientNames);
+      } else {
+        final lines = const LineSplitter().convert(text);
+        _ancientNamesCache = lines
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
+
+        if (_ancientNamesCache!.isEmpty) {
+          _ancientNamesCache = List.from(_fallbackAncientNames);
+        }
       }
     }
-    final all = _ancientNamesCache!;
-    final end = (offset + limit).clamp(0, all.length);
-    return all.sublist(offset.clamp(0, all.length), end);
+
+    final total = _ancientNamesCache!.length;
+    final start = offset.clamp(0, total);
+    final end = (offset + limit).clamp(0, total);
+
+    return _ancientNamesCache!
+        .sublist(start, end)
+        .map((name) => {'name': name})
+        .toList();
   }
 
-  static Future<List<Map<String, dynamic>>> loadJapaneseNames({int offset = 0, int limit = 50}) async {
+  // ==================== 日本人名相关 ====================
+
+  /// 加载日本人名（分页）
+  /// 返回 [{name: '田中'}, ...]
+  Future<List<Map<String, dynamic>>> loadJapaneseNames({
+    int offset = 0,
+    int limit = 50,
+  }) async {
     if (_japaneseNamesCache == null) {
-      try {
-        final text = await rootBundle.loadString('assets/data/japanese_names.txt');
-        _japaneseNamesCache = text
-            .split('\n')
-            .where((line) => line.trim().isNotEmpty)
-            .map((line) {
-          final parts = line.trim().split(RegExp(r'\s+'));
-          return {
-            'name_kanji': parts[0],
-            'name_hiragana': parts.length > 1 ? parts[1] : '',
-            'name_romaji': parts.length > 2 ? parts[2] : '',
-            'meaning': parts.length > 3 ? parts.sublist(3).join(' ') : '',
-          };
-        }).toList();
-      } catch (_) {
-        _japaneseNamesCache = [];
+      final text = await _loadAssetText('assets/data/japanese_names.txt');
+      if (text == null || text.isEmpty) {
+        _japaneseNamesCache = List.from(_fallbackJapaneseNames);
+      } else {
+        final lines = const LineSplitter().convert(text);
+        _japaneseNamesCache = lines
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
+
+        if (_japaneseNamesCache!.isEmpty) {
+          _japaneseNamesCache = List.from(_fallbackJapaneseNames);
+        }
       }
     }
-    final all = _japaneseNamesCache!;
-    final end = (offset + limit).clamp(0, all.length);
-    return all.sublist(offset.clamp(0, all.length), end);
+
+    final total = _japaneseNamesCache!.length;
+    final start = offset.clamp(0, total);
+    final end = (offset + limit).clamp(0, total);
+
+    return _japaneseNamesCache!
+        .sublist(start, end)
+        .map((name) => {'name': name})
+        .toList();
   }
 
-  static List<Map<String, dynamic>> _generateFallbackNames() {
-    final random = Random();
-    final names = <Map<String, dynamic>>[];
-    final genders = ['男', '女'];
-    for (int i = 0; i < 200; i++) {
-      final surname = _fallbackSurnames[random.nextInt(_fallbackSurnames.length)];
-      final givenLength = random.nextBool() ? 1 : 2;
-      final givenChars = <String>[];
-      for (int j = 0; j < givenLength; j++) {
-        givenChars.add(_fallbackGivenNameChars[random.nextInt(_fallbackGivenNameChars.length)]);
+  // ==================== 英文译名相关 ====================
+
+  /// 加载英文译名（分页）
+  /// 返回 [{cn_name: '约翰', en_name: 'John', gender: 'M'}, ...]
+  Future<List<Map<String, dynamic>>> loadEnglishNames({
+    int offset = 0,
+    int limit = 50,
+  }) async {
+    if (_englishNamesCache == null) {
+      final text = await _loadAssetText('assets/data/english_names.txt');
+      if (text == null || text.isEmpty) {
+        _englishNamesCache = List.from(_fallbackEnglishNames);
+      } else {
+        final lines = const LineSplitter().convert(text);
+        _englishNamesCache = <Map<String, dynamic>>[];
+
+        for (final line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty) continue;
+
+          final parts = trimmed.split('|');
+          if (parts.length >= 3) {
+            _englishNamesCache!.add({
+              'cn_name': parts[0].trim(),
+              'en_name': parts[1].trim(),
+              'gender': parts[2].trim(),
+            });
+          } else if (parts.length == 2) {
+            _englishNamesCache!.add({
+              'cn_name': parts[0].trim(),
+              'en_name': parts[1].trim(),
+              'gender': '未知',
+            });
+          } else if (parts.length == 1 && parts[0].trim().isNotEmpty) {
+            _englishNamesCache!.add({
+              'cn_name': parts[0].trim(),
+              'en_name': '',
+              'gender': '未知',
+            });
+          }
+        }
+
+        if (_englishNamesCache!.isEmpty) {
+          _englishNamesCache = List.from(_fallbackEnglishNames);
+        }
       }
-      final gender = genders[random.nextInt(genders.length)];
-      names.add({'name': surname + givenChars.join(), 'gender': gender});
     }
-    return names;
+
+    final total = _englishNamesCache!.length;
+    final start = offset.clamp(0, total);
+    final end = (offset + limit).clamp(0, total);
+
+    return _englishNamesCache!.sublist(start, end);
   }
 
-  static void reset() {
+  // ==================== 数据统计 ====================
+
+  /// 获取各类型数据总数
+  /// [type] 支持: names, surnames, idioms, ancient, japanese, english
+  Future<int> getTotalCount(String type) async {
+    switch (type.toLowerCase()) {
+      case 'names':
+        final data = await loadNames();
+        return data.length;
+      case 'surnames':
+        final data = await loadSurnames();
+        return data.length;
+      case 'idioms':
+        final data = await loadIdioms();
+        return data.length;
+      case 'ancient':
+        await loadAncientNames(offset: 0, limit: 1);
+        return _ancientNamesCache?.length ?? 0;
+      case 'japanese':
+        await loadJapaneseNames(offset: 0, limit: 1);
+        return _japaneseNamesCache?.length ?? 0;
+      case 'english':
+        await loadEnglishNames(offset: 0, limit: 1);
+        return _englishNamesCache?.length ?? 0;
+      default:
+        return 0;
+    }
+  }
+
+  // ==================== 缓存管理 ====================
+
+  /// 清除所有缓存数据
+  void clearCache() {
     _namesCache = null;
     _surnamesCache = null;
+    _surnamesForGenCache = null;
     _idiomsCache = null;
     _ancientNamesCache = null;
     _japaneseNamesCache = null;
+    _englishNamesCache = null;
   }
 }
