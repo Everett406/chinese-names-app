@@ -44,17 +44,40 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
 
       - name: Build Signed APK
-        env:         KEYSTORE_PATH: release.keystore
+        env:
+          KEYSTORE_PATH: release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
-      - name: Get APK info
-        id: apk_info
-        run: |
-          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-          APK_SIZE=$(stat -c%s "$APK_PATH")
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
-          echo "version_name=$(grep 'version:' pubspec.yaml | head -1 | awk '{print $2}' | tr -d '"')
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "萌名工具箱 v1.0.0"
+          body: |
+            ## 萌名工具箱 (Chinese Names Toolkit) v1.0.0
+
+            ### 功能
+            - 🎲 人名生成器 - 随机生成中文姓名
+            - 🔍 人名搜索 - 搜索120万中文人名
+            - 📖 姓氏大全 - 浏览1000+中文姓氏
+            - 📚 成语词典 - 收录中华成语
+            - 📜 古代人名 - 25万古代人名
+            - 🇯🇵 日文人名 - 18万日文人名
+
+            ### 安装
+            下载 `app-release.apk` 安装到 Android 设备即可。
+          files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
