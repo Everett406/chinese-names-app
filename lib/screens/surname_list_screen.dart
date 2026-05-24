@@ -496,15 +496,17 @@ class _SurnameItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    pinyin,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      letterSpacing: 0.5,
+                  if (pinyin.isNotEmpty && pinyin != '#') ...[
+                    Text(
+                      pinyin,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
+                    const SizedBox(height: 2),
+                  ],
                   Text(
                     surname,
                     style: const TextStyle(

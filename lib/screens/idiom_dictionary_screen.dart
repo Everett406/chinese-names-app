@@ -129,8 +129,9 @@ class _IdiomDictionaryScreenState extends State<IdiomDictionaryScreen> {
                   fontSize: 48,
                   fontWeight: FontWeight.w900,
                   color: colorScheme.onSurface,
-                  letterSpacing: 12,
+                  letterSpacing: 4,
                 ),
+                softWrap: false,
               ),
               const SizedBox(height: 16),
               Container(

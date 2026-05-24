@@ -124,6 +124,7 @@ class DataService {
           'gender': parts[1].trim(),
         });
       } else if (parts.length == 1 && parts[0].trim().isNotEmpty) {
+        // 兼容只有名字没有性别的情况
         _namesCache!.add({
           'name': parts[0].trim(),
           'gender': '未知',
@@ -187,7 +188,15 @@ class DataService {
     }
 
     final givenName = namePool[_random.nextInt(namePool.length)];
-    return finalSurname + givenName;
+
+    // 确保结果只包含中文
+    String result = finalSurname + givenName;
+    if (result.replaceAll(RegExp(r'[\u4e00-\u9fff]'), '').isNotEmpty) {
+      // 包含非中文字符，使用 fallback
+      final fallbackNames = ['伟', '芳', '娜', '洋', '静', '磊', '敏', '强', '杰', '秀英'];
+      result = finalSurname + fallbackNames[_random.nextInt(fallbackNames.length)];
+    }
+    return result;
   }
 
   /// 从人名列表中提取名字部分（去掉姓氏前缀）
@@ -478,6 +487,7 @@ class DataService {
         final data = await loadIdioms();
         return data.length;
       case 'ancient':
+        // 确保数据已加载
         await loadAncientNames(offset: 0, limit: 1);
         return _ancientNamesCache?.length ?? 0;
       case 'japanese':
