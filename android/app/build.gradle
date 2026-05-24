@@ -22,13 +22,6 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0.0'
 }
 
-// 签名配置：从环境变量或 key.properties 读取
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace "com.example.chinese_names_app"
     compileSdk 34
@@ -52,18 +45,12 @@ android {
 
     signingConfigs {
         release {
-            if (System.getenv('KEYSTORE_BASE64') != null) {
-                // CI 环境：从环境变量读取
-                storeFile file(System.getenv('KEYSTORE_PATH') ?: 'release.keystore')
+            def keystorePath = System.getenv('KEYSTORE_PATH')
+            if (keystorePath != null) {
+                storeFile file(keystorePath)
                 storePassword System.getenv('KEYSTORE_PASSWORD') ?: ''
                 keyAlias System.getenv('KEY_ALIAS') ?: ''
                 keyPassword System.getenv('KEY_PASSWORD') ?: ''
-            } else if (keystoreProperties.containsKey('storeFile')) {
-                // 本地开发：从 key.properties 读取
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
             }
         }
     }
@@ -71,9 +58,6 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
