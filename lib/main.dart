@@ -50,7 +50,7 @@ class ChineseNamesApp extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 2,
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -85,7 +85,7 @@ class ChineseNamesApp extends StatelessWidget {
           scrolledUnderElevation: 2,
           backgroundColor: const Color(0xFF1E1E1E),
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
