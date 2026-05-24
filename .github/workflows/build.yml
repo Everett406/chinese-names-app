@@ -1,10 +1,20 @@
-name: Build Android APK
+name: Build and Release APK
 
 on:
   push:
     branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   build:
@@ -29,11 +39,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+
+      - name: Build Signed APK
+        env:         KEYSTORE_PATH: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Get APK info
+        id: apk_info
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          echo "version_name=$(grep 'version:' pubspec.yaml | head -1 | awk '{print $2}' | tr -d '"')
