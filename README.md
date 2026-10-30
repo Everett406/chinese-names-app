@@ -1,9 +1,9 @@
----
 
 > [!NOTE]
 > **本仓库已迁移至 Gitee**：<https://gitee.com/Everett5678/chinese-names-app>
 > GitHub 端仅作只读归档，新代码请推送到 Gitee。
 
+---
 # 萌名工具箱 (Chinese Names Toolkit)
 
 基于 [Chinese-Names-Corpus](https://github.com/wainshine/Chinese-Names-Corpus) 语料库开发的 Android 应用，使用 Flutter 构建。
