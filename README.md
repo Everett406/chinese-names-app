@@ -38,7 +38,7 @@
 ### 本地构建
 
 ```bash
-git clone https://github.com/Everett406/chinese-names-app.git
+git clone https://gitee.com/Everett5678/chinese-names-app.git
 cd chinese-names-app
 flutter pub get
 flutter build apk --release
